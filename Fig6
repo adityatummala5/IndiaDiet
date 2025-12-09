@@ -1,0 +1,49 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+data = {
+    "Year": [
+        1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
+        2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+        2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019,
+        2020, 2021, 2022, 2023
+    ],
+    "AveragePercentPrevalence": [
+        14.04, 14.02, 14.09, 14.22, 14.34, 14.42, 14.68, 15.24, 15.93, 16.57, 16.97, 17.18, 17.38, 17.57, 17.77, 17.99, 18.24, 18.56, 18.92, 19.32, 19.75, 20.39, 21.29, 22.26, 23.11, 23.63, 24, 24.47, 24.95, 25.36, 25.64, 25.8, 25.92, 26.14
+    ],
+    "Upper": [
+        15.66, 15.63, 15.7, 15.81, 15.94, 16.04, 16.3, 16.84, 17.57, 18.26, 18.71, 18.88, 19.08, 19.28, 19.52, 19.78, 20.01, 20.35, 20.77, 21.24, 21.75, 22.43, 23.41, 24.5, 25.44, 26, 26.43, 26.92, 27.43, 27.85, 28.14, 28.48, 28.61, 28.85
+    ],
+    "Lower": [
+        12.33, 12.3, 12.37, 12.49, 12.61, 12.68, 12.9, 13.42, 14.08, 14.68, 15.1, 15.3, 15.52, 15.75, 15.97, 16.18, 16.42, 16.69, 17.01, 17.36, 17.74, 18.35, 19.22, 20.14, 20.98, 21.58, 21.91, 22.33, 22.78, 23.18, 23.43, 23.51, 23.54, 23.74
+    ]
+}
+
+prev_df = pd.DataFrame(data)
+
+
+plt.figure(figsize=(8, 5))
+
+# Shaded band between lower and upper
+plt.fill_between(
+    prev_df["Year"],
+    prev_df["Lower"],
+    prev_df["Upper"],
+    alpha=0.2
+)
+
+# Line for average prevalence
+plt.plot(
+    prev_df["Year"],
+    prev_df["AveragePercentPrevalence"],
+    marker="o",
+    label="% of Population with Type II Diabetes (60+)"
+)
+
+plt.xlabel("Year")
+plt.ylabel("Percent Population Prevalance (%)")
+plt.title("Figure 6: Prevalance of Type II Diabetes Over Time (60+): India")
+plt.legend()
+plt.tight_layout()
+plt.show()
