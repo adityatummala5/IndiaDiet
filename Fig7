@@ -1,0 +1,44 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+data = {
+    "Year": [
+        1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
+        2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+        2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019,
+        2020, 2021, 2022, 2023
+    ],
+    "AveragePercentPrevalence": [
+        36.71, 36.54, 36.39, 36.26, 36.15, 36.05, 35.97, 35.92, 35.85, 35.78, 35.66, 35.49, 35.27, 35.03, 34.81, 34.66, 34.58, 34.55, 34.54, 34.52, 34.46, 34.35, 34.2, 34.04, 33.86, 33.69, 33.52, 33.33, 33.11, 32.86, 32.58, 32.17, 31.72, 31.38],
+    "Upper": [
+        47.16, 46.35, 45.37, 45.1, 45.06, 45.13, 45.51, 45.66, 45.26, 44.69, 44.22, 43.49, 42.72, 41.94, 41.89, 42.11, 41.7, 41.37, 41.14, 41.03, 41.24, 41.34, 41.02, 40.97, 41.2, 41.16, 41, 40.87, 40.47, 40.52, 40.18, 39.53, 38.85, 38.72],
+    "Lower": [
+        27.8, 27.96, 28.05, 28.23, 28.21, 28.29, 28.59, 29.1, 29.25, 29.04, 28.92, 28.99, 29.3, 29.17, 28.8, 28.71, 28.88, 28.9, 29.04, 29.12, 28.84, 28.93, 29.08, 28.76, 28.43, 28.22, 28.19, 28.12, 28.01, 27.83, 27.51, 27.12, 26.6, 26.51]
+}
+
+prev_df = pd.DataFrame(data)
+
+
+plt.figure(figsize=(8, 5))
+
+plt.fill_between(
+    prev_df["Year"],
+    prev_df["Lower"],
+    prev_df["Upper"],
+    alpha=0.2
+)
+
+plt.plot(
+    prev_df["Year"],
+    prev_df["AveragePercentPrevalence"],
+    marker="o",
+    label="% of Population with Iron Deficiency (All Ages)"
+)
+
+plt.xlabel("Year")
+plt.ylabel("Percent Population Prevalance (%)")
+plt.title("Figure 7b: Prevalance of Iron Deficiency Over Time (All Ages): India")
+plt.legend()
+plt.tight_layout()
+plt.show()
