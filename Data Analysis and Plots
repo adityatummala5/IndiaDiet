@@ -1,0 +1,454 @@
+## MAIN PLOTS
+import pandas as pd
+import matplotlib.pyplot as plt
+from scipy.stats import ttest_ind 
+from itertools import combinations 
+
+india_path = "/content/drive/MyDrive/FAO_Data/FAO_India.csv"
+sasia_path = "/content/drive/MyDrive/FAO_Data/FAO_PakBanSriNep.csv"
+rich_path  = "/content/drive/MyDrive/FAO_Data/FAO_EU_UK_US_CAN.csv"
+
+india = pd.read_csv(india_path)
+sasia = pd.read_csv(sasia_path)
+rich  = pd.read_csv(rich_path)
+
+all_df = pd.concat([india, sasia, rich], ignore_index=True)
+
+south_asia_others = ["Bangladesh", "Pakistan", "Nepal", "Sri Lanka"]
+rich_countries = [
+    "Canada",
+    "United States of America",
+    "European Union (27)",
+    "United Kingdom of Great Britain and Northern Ireland",
+]
+
+def assign_region(area):
+    if area == "India":
+        return "India"
+    elif area in south_asia_others:
+        return "Other South Asia"
+    elif area in rich_countries:
+        return "High-income (EU/UK/US/CAN)"
+    else:
+        return "Other"
+
+all_df["Region"] = all_df["Area"].apply(assign_region)
+
+all_df = all_df[
+    all_df["Region"].isin(["India", "Other South Asia", "High-income (EU/UK/US/CAN)"])
+]
+
+
+macro = all_df[
+    all_df["Element"].isin(
+        [
+            "Protein supply quantity (g/capita/day)",
+            "Fat supply quantity (g/capita/day)",
+        ]
+    )
+]
+
+macro_area = macro.groupby(
+    ["Area", "Region", "Year", "Element"], as_index=False
+)["Value"].sum()
+
+macro_region = (
+    macro_area.groupby(["Region", "Year", "Element"], as_index=False)["Value"].mean()
+)
+
+
+cereal_items = [
+    "Wheat and products",
+    "Rice and products",
+    "Barley and products",
+    "Maize and products",
+    "Rye and products",
+    "Oats",
+    "Millet and products",
+    "Sorghum and products",
+    "Cereals, other",
+]
+
+simple_cereal_items = [
+    "Wheat and products",
+    "Rice and products",
+]
+
+complex_cereal_items = [
+    "Barley and products",
+    "Maize and products",
+    "Rye and products",
+    "Oats",
+    "Millet and products",
+    "Sorghum and products",
+    "Cereals, other",
+]
+
+oil_items = [
+    "Soyabean Oil",
+    "Groundnut Oil",
+    "Sunflowerseed Oil",
+    "Rape and Mustard Oil",
+    "Cottonseed Oil",
+    "Palm Oil",
+    "Coconut Oil",
+    "Sesameseed Oil",
+    "Ricebran Oil",
+    "Oilcrops Oil, Other",
+    "Vegetable Oils",
+]
+
+sugar_items = [
+    "Sugar (Raw Equivalent)",
+    "Sugar & Sweeteners",
+    "Sugar and products",
+    "Sweeteners, other",
+    "Sugar non-centrifugal",
+]
+
+def build_group_trend(df, item_list, new_colname):
+    sub = df[
+        (df["Element"] == "Food supply quantity (kg/capita/yr)")
+        & (df["Item"].isin(item_list))
+    ]
+    area_level = (
+        sub.groupby(["Area", "Region", "Year"], as_index=False)["Value"]
+        .sum()
+        .rename(columns={"Value": new_colname})
+    )
+    region_level = (
+        area_level.groupby(["Region", "Year"], as_index=False)[new_colname].mean()
+    )
+    return area_level, region_level
+
+cer_area, cer_region = build_group_trend(all_df, cereal_items, "cereal_kg_yr")
+oil_area, oil_region = build_group_trend(all_df, oil_items, "oil_kg_yr")
+
+simple_cer_area, simple_cer_region = build_group_trend(
+    all_df, simple_cereal_items, "simple_cereal_kg_yr"
+)
+complex_cer_area, complex_cer_region = build_group_trend(
+    all_df, complex_cereal_items, "complex_cereal_kg_yr"
+)
+
+sugar_area, sugar_region = build_group_trend(
+    all_df, sugar_items, "sugar_kg_yr"
+)
+
+
+processed_sub = all_df[
+    all_df["Element"] == "Processing"
+]
+
+processed_area = (
+    processed_sub.groupby(["Area", "Region", "Year"], as_index=False)["Value"]
+    .sum()
+    .rename(columns={"Value": "processed_kg_yr"})
+)
+
+processed_region = (
+    processed_area.groupby(["Region", "Year"], as_index=False)["processed_kg_yr"].mean()
+)
+
+def plot_macro_element(macro_region, element_name, ylabel, title):
+    plt.figure(figsize=(8, 5))
+    for region in macro_region["Region"].unique():
+        sub = macro_region[
+            (macro_region["Region"] == region)
+            & (macro_region["Element"] == element_name)
+        ].sort_values("Year")
+        plt.plot(sub["Year"], sub["Value"], marker="o", label=region)
+    plt.xlabel("Year")
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+def plot_group(region_df, value_col, ylabel, title):
+    plt.figure(figsize=(8, 5))
+    for region in region_df["Region"].unique():
+        sub = region_df[region_df["Region"] == region].sort_values("Year")
+        plt.plot(sub["Year"], sub[value_col], marker="o", label=region)
+
+    plt.xlabel("Year")
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+
+plot_macro_element(
+    macro_region,
+    "Protein supply quantity (g/capita/day)",
+    "Protein (g/capita/day)",
+    "Figure 1a: Protein consumption over time",
+)
+
+plot_macro_element(
+    macro_region,
+    "Fat supply quantity (g/capita/day)",
+    "Fat (g/capita/day)",
+    "Figure 1b: Fat consumption over time",
+)
+
+plot_group(
+    cer_region,
+    "cereal_kg_yr",
+    "Cereals (kg/capita/year)",
+    "Figure 2: Cereal consumption over time",
+)
+
+plot_group(
+    oil_region,
+    "oil_kg_yr",
+    "Vegetable oil supply (kg/capita/year)",
+    "Vegetable oil supply over time",
+)
+
+plot_group(
+    simple_cer_region,
+    "simple_cereal_kg_yr",
+    "Simple carbohydrates (kg/capita/year)",
+    "Figure 3a: Simple carbohydrates (wheat + rice) consumption over time",
+)
+
+plot_group(
+    complex_cer_region,
+    "complex_cereal_kg_yr",
+    "Complex carbohydrates (kg/capita/year)",
+    "Figure 3b: Complex carbohydrates (barley/maize/millets/etc.) consumption over time",
+)
+
+plot_group(
+    sugar_region,
+    "sugar_kg_yr",
+    "Sugar supply (kg/capita/year)",
+    "Sugar supply over time",
+)
+
+plot_group(
+    processed_region,
+    "processed_kg_yr",
+    "Food Supply Processing (kg/capita/year)",
+    "Figure 5:Food Supply Processing Over Time",
+)
+
+
+low_processed_items = complex_cereal_items
+
+high_processed_items = list(
+    set(simple_cereal_items + sugar_items + oil_items)  
+)
+
+low_proc_area, low_proc_region = build_group_trend(
+    all_df, low_processed_items, "low_processed_kg_yr"
+)
+
+high_proc_area, high_proc_region = build_group_trend(
+    all_df, high_processed_items, "high_processed_kg_yr"
+)
+
+plot_group(
+    low_proc_region,
+    "low_processed_kg_yr",
+    "Low-processed foods (kg/capita/year)",
+    "Low-processed (complex cereals) over time",
+)
+
+plot_group(
+    high_proc_region,
+    "high_processed_kg_yr",
+    "High-processed / refined foods (kg/capita/year)",
+    "Figure 4a: High-processed (wheat+rice+sugar+oils) consumption over time",
+)
+
+processed_merge = high_proc_region.merge(
+    low_proc_region,
+    on=["Region", "Year"],
+    how="inner",
+)
+
+processed_merge["total_processed_group_kg_yr"] = (
+    processed_merge["high_processed_kg_yr"]
+    + processed_merge["low_processed_kg_yr"]
+)
+
+processed_merge["high_processed_share_pct"] = (
+    processed_merge["high_processed_kg_yr"]
+    / processed_merge["total_processed_group_kg_yr"]
+) * 100.0
+
+plot_group(
+    processed_merge,
+    "high_processed_share_pct",
+    "High-processed share of cereals+sugar+oils (%)",
+    "Figure 4b: High-processed share over time",
+)
+
+
+def summarize_start_end(df, group_cols, value_col):
+    out_rows = []
+    for keys, sub in df.groupby(group_cols):
+        sub = sub.sort_values("Year")
+        start = sub.iloc[0]
+        end = sub.iloc[-1]
+        out_rows.append(
+            {
+                **{c: start[c] for c in group_cols},
+                "start_year": int(start["Year"]),
+                "start_val": float(start[value_col]),
+                "end_year": int(end["Year"]),
+                "end_val": float(end[value_col]),
+                "abs_change": float(end[value_col] - start[value_col]),
+            }
+        )
+    return pd.DataFrame(out_rows)
+
+macro_region_summary   = summarize_start_end(macro_region, ["Region", "Element"], "Value")
+cer_region_summary     = summarize_start_end(cer_region, ["Region"], "cereal_kg_yr")
+oil_region_summary     = summarize_start_end(oil_region, ["Region"], "oil_kg_yr")
+simple_cer_summary     = summarize_start_end(simple_cer_region, ["Region"], "simple_cereal_kg_yr")
+complex_cer_summary    = summarize_start_end(complex_cer_region, ["Region"], "complex_cereal_kg_yr")
+sugar_region_summary   = summarize_start_end(sugar_region, ["Region"], "sugar_kg_yr")
+processed_region_summary = summarize_start_end(processed_region, ["Region"], "processed_kg_yr")
+
+def pairwise_ttests_over_time(df, value_col, group_col="Region", min_n_years=3):
+    """
+    For each pair of groups (by group_col), run a Welch t-test on the
+    time series of value_col using only overlapping years.
+
+    Returns a DataFrame with: group1, group2, n_years, t_stat, p_value.
+    """
+    groups = sorted(df[group_col].unique())
+    results = []
+
+    for g1, g2 in combinations(groups, 2):
+        sub1 = df[df[group_col] == g1][["Year", value_col]].dropna()
+        sub2 = df[df[group_col] == g2][["Year", value_col]].dropna()
+
+        merged = pd.merge(
+            sub1,
+            sub2,
+            on="Year",
+            suffixes=("_1", "_2")
+        )
+
+        n_years = len(merged)
+        if n_years < min_n_years:
+            t_stat, p_val = float("nan"), float("nan")
+        else:
+            t_stat, p_val = ttest_ind(
+                merged[f"{value_col}_1"],
+                merged[f"{value_col}_2"],
+                equal_var=False  
+            )
+
+        results.append(
+            {
+                f"{group_col}_1": g1,
+                f"{group_col}_2": g2,
+                "n_years": n_years,
+                "t_stat": t_stat,
+                "p_value": p_val,
+            }
+        )
+
+    return pd.DataFrame(results)
+
+print("\nProcessed foods (region averages):")
+print(processed_region_summary.sort_values("Region"))
+
+
+print("Macro nutrients (region averages):")
+print(macro_region_summary.sort_values(["Element", "Region"]))
+
+print("\nCereals (region averages):")
+print(cer_region_summary.sort_values("Region"))
+
+print("\nVegetable oils (region averages):")
+print(oil_region_summary.sort_values("Region"))
+
+print("\nSimple carbohydrates (wheat + rice) (region averages):")
+print(simple_cer_summary.sort_values("Region"))
+
+print("\nComplex carbohydrates (other cereals) (region averages):")
+print(complex_cer_summary.sort_values("Region"))
+
+print("\nSugar (region averages):")
+print(sugar_region_summary.sort_values("Region"))
+
+print("\nProcessed foods (region averages):")
+print(processed_region_summary.sort_values("Region"))
+
+complex_cer_table = complex_cer_region.sort_values(["Region", "Year"])
+
+print("\nComplex carbohydrate supply (kg/capita/year) by region and year:")
+print(complex_cer_table)
+
+
+print("\n=== P-values: Macro nutrients (region-level, over time) ===")
+
+for elem in sorted(macro_region["Element"].unique()):
+    sub = macro_region[macro_region["Element"] == elem].copy()
+    res = pairwise_ttests_over_time(sub, value_col="Value")
+    print(f"\nElement: {elem}")
+    print(res.sort_values("p_value"))
+
+print("\n=== P-values: Cereal supply (kg/capita/year) ===")
+cer_pvals = pairwise_ttests_over_time(cer_region, value_col="cereal_kg_yr")
+print(cer_pvals.sort_values("p_value"))
+
+print("\n=== P-values: Vegetable oil supply (kg/capita/year) ===")
+oil_pvals = pairwise_ttests_over_time(oil_region, value_col="oil_kg_yr")
+print(oil_pvals.sort_values("p_value"))
+
+print("\n=== P-values: Simple carbohydrates (wheat + rice) (kg/capita/year) ===")
+simple_cer_pvals = pairwise_ttests_over_time(
+    simple_cer_region,
+    value_col="simple_cereal_kg_yr"
+)
+print(simple_cer_pvals.sort_values("p_value"))
+
+print("\n=== P-values: Complex carbohydrates (other cereals) (kg/capita/year) ===")
+complex_cer_pvals = pairwise_ttests_over_time(
+    complex_cer_region,
+    value_col="complex_cereal_kg_yr"
+)
+print(complex_cer_pvals.sort_values("p_value"))
+
+print("\n=== P-values: Sugar supply (kg/capita/year) ===")
+sugar_pvals = pairwise_ttests_over_time(
+    sugar_region,
+    value_col="sugar_kg_yr"
+)
+print(sugar_pvals.sort_values("p_value"))
+
+print("\n=== P-values: Processed foods 'Processing' (kg/capita/year) ===")
+processed_pvals = pairwise_ttests_over_time(
+    processed_region,
+    value_col="processed_kg_yr"
+)
+print(processed_pvals.sort_values("p_value"))
+
+print("\n=== P-values: Low-processed (complex cereals) (kg/capita/year) ===")
+low_proc_pvals = pairwise_ttests_over_time(
+    low_proc_region,
+    value_col="low_processed_kg_yr"
+)
+print(low_proc_pvals.sort_values("p_value"))
+
+print("\n=== P-values: High-processed / refined (wheat+rice+sugar+oils) (kg/capita/year) ===")
+high_proc_pvals = pairwise_ttests_over_time(
+    high_proc_region,
+    value_col="high_processed_kg_yr"
+)
+print(high_proc_pvals.sort_values("p_value"))
+
+print("\n=== P-values: High-processed share of cereals+sugar+oils (%) ===")
+share_pvals = pairwise_ttests_over_time(
+    processed_merge,
+    value_col="high_processed_share_pct"
+)
+print(share_pvals.sort_values("p_value"))
